@@ -25,7 +25,7 @@ function resize(){W=innerWidth;H=innerHeight;dpr=Math.min(devicePixelRatio||1,2)
 window.addEventListener('resize',resize);resize();
 function project(x,y,z){const c=Math.cos(yaw),s=Math.sin(yaw),xx=x*c+z*s,zz=z*c-x*s;const p=800/(800+zz);return {x:W/2+xx*scale*p,y:H*.76-y*scale*p,z:zz,p};}
 function dot(x,y,z,color,alpha,size=1){const p=project(x,y,z);ctx.globalAlpha=clamp(alpha);ctx.fillStyle=color;ctx.fillRect(p.x,p.y,Math.max(.5,size*scale*p.p),Math.max(.5,size*scale*p.p));}
-function render(now){requestAnimationFrame(render);if(!last)last=now;const dt=Math.min((now-last)/1000,.05);last=now;if(!paused&&!document.hidden)elapsed+=dt;yaw+=(targetYaw-yaw)*.025;
+function render(now){requestAnimationFrame(render);if(!last)last=now;const dt=Math.max(0,(now-last)/1000);last=now;if(!paused&&!document.hidden)elapsed+=dt;yaw+=(targetYaw-yaw)*.025;
  const t=elapsed,grow=smooth(t/4),open=smooth((t-3)/7),sway=Math.sin(t*.65)*2;
  ctx.globalAlpha=1;const bg=ctx.createRadialGradient(W*.5,H*.62,0,W*.5,H*.62,Math.max(W,H)*.7);bg.addColorStop(0,'#18102b');bg.addColorStop(.5,'#0a0b19');bg.addColorStop(1,'#04060c');ctx.fillStyle=bg;ctx.fillRect(0,0,W,H);
  for(const p of dust){ctx.globalAlpha=(.13+.25*Math.sin(t*.7+p.a*10)**2);ctx.fillStyle=p.a>.5?'#d9a6da':'#a9b9e3';ctx.fillRect(p.x*W,(p.y*H-t*(2+p.speed*5)%H+H)%H,1+p.r,1+p.r)}
