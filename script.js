@@ -1,6 +1,7 @@
 'use strict';
 const canvas=document.getElementById('bloom'),ctx=canvas.getContext('2d');
 const pauseBtn=document.getElementById('pause'),statusText=document.getElementById('status');
+let dirty=true;
 let W=0,H=0,dpr=1,scale=1,elapsed=0,last=0,paused=false,yaw=.3,targetYaw=.3;
 const TAU=Math.PI*2,clamp=(x,a=0,b=1)=>Math.min(b,Math.max(a,x)),smooth=x=>{x=clamp(x);return x*x*(3-2*x)};
 let seed=47;function random(){seed=(seed*1664525+1013904223)>>>0;return seed/4294967296}
@@ -21,11 +22,11 @@ for(let side of [-1,1])for(let level=0;level<2;level++)for(let i=0;i<1100;i++){
 for(let i=0;i<3600;i++)stem.push({t:random(),a:random()*TAU,n:random()});
 for(let i=0;i<150;i++)dust.push({x:random(),y:random(),a:random(),r:random(),speed:random()});
 for(let j=0;j<4;j++)for(let i=0;i<650;i++)orbits.push({j,t:i/650*TAU,n:random()});
-function resize(){W=innerWidth;H=innerHeight;dpr=Math.min(devicePixelRatio||1,2);canvas.width=W*dpr;canvas.height=H*dpr;ctx.setTransform(dpr,0,0,dpr,0,0);scale=Math.min(W/550,H/770);}
+function resize(){W=innerWidth;H=innerHeight;dpr=Math.min(devicePixelRatio||1,2);dirty=true;canvas.width=W*dpr;canvas.height=H*dpr;ctx.setTransform(dpr,0,0,dpr,0,0);scale=Math.min(W/550,H/770);}
 window.addEventListener('resize',resize);resize();
 function project(x,y,z){const c=Math.cos(yaw),s=Math.sin(yaw),xx=x*c+z*s,zz=z*c-x*s;const p=800/(800+zz);return {x:W/2+xx*scale*p,y:H*.76-y*scale*p,z:zz,p};}
 function dot(x,y,z,color,alpha,size=1){const p=project(x,y,z);ctx.globalAlpha=clamp(alpha);ctx.fillStyle=color;ctx.fillRect(p.x,p.y,Math.max(.5,size*scale*p.p),Math.max(.5,size*scale*p.p));}
-function render(now){requestAnimationFrame(render);if(!last)last=now;const dt=Math.max(0,(now-last)/1000);last=now;if(!paused&&!document.hidden)elapsed+=dt;yaw+=(targetYaw-yaw)*.025;
+function render(now){requestAnimationFrame(render);if(!last)last=now;const dt=Math.min(.1,Math.max(0,(now-last)/1000));last=now;if(document.hidden||paused&&!dirty)return;dirty=false;if(!paused)elapsed+=dt;yaw+=(targetYaw-yaw)*.025;
  const t=elapsed,grow=smooth(t/4),open=smooth((t-3)/7),sway=Math.sin(t*.65)*2;
  ctx.globalAlpha=1;const bg=ctx.createRadialGradient(W*.5,H*.62,0,W*.5,H*.62,Math.max(W,H)*.7);bg.addColorStop(0,'#18102b');bg.addColorStop(.5,'#0a0b19');bg.addColorStop(1,'#04060c');ctx.fillStyle=bg;ctx.fillRect(0,0,W,H);
  for(const p of dust){ctx.globalAlpha=(.13+.25*Math.sin(t*.7+p.a*10)**2);ctx.fillStyle=p.a>.5?'#d9a6da':'#a9b9e3';ctx.fillRect(p.x*W,(p.y*H-t*(2+p.speed*5)%H+H)%H,1+p.r,1+p.r)}
@@ -45,9 +46,11 @@ function render(now){requestAnimationFrame(render);if(!last)last=now;const dt=Ma
  ctx.globalAlpha=1;
 }
 requestAnimationFrame(render);
-pauseBtn.onclick=()=>{paused=!paused;pauseBtn.textContent=paused?'Play':'Pause';pauseBtn.setAttribute('aria-label',paused?'Play animation':'Pause animation')};
-document.getElementById('replay').onclick=()=>{elapsed=0;paused=false;pauseBtn.textContent='Pause';pauseBtn.setAttribute('aria-label','Pause animation');statusText.textContent='Every beautiful thing takes time.'};
-canvas.addEventListener('pointermove',e=>{targetYaw=.3+(e.clientX/W-.5)*.7});canvas.addEventListener('pointerleave',()=>{targetYaw=.3});
+pauseBtn.onclick=()=>{paused=!paused;dirty=true;pauseBtn.textContent=paused?'Play':'Pause';pauseBtn.setAttribute('aria-label',paused?'Play animation':'Pause animation')};
+document.getElementById('replay').onclick=()=>{elapsed=0;paused=false;dirty=true;pauseBtn.textContent='Pause';pauseBtn.setAttribute('aria-label','Pause animation');statusText.textContent='Every beautiful thing takes time.'};
+canvas.addEventListener('pointermove',e=>{targetYaw=.3+(e.clientX/W-.5)*.7;dirty=true});canvas.addEventListener('pointerleave',()=>{targetYaw=.3;dirty=true});
+document.addEventListener('visibilitychange',()=>{last=0;dirty=true;});
 const fullscreenBtn=document.getElementById('fullscreen');if(!document.fullscreenEnabled)fullscreenBtn.hidden=true;fullscreenBtn.onclick=async()=>{try{if(document.fullscreenElement)await document.exitFullscreen();else await document.documentElement.requestFullscreen()}catch{statusText.textContent='Fullscreen is unavailable in this browser.'}};
 document.addEventListener('fullscreenchange',()=>fullscreenBtn.setAttribute('aria-label',document.fullscreenElement?'Exit fullscreen':'Enter fullscreen'));
 if(matchMedia('(prefers-reduced-motion: reduce)').matches){elapsed=11;paused=true;pauseBtn.textContent='Play';pauseBtn.setAttribute('aria-label','Play animation')}
+
