@@ -15,3 +15,8 @@ Open `index.html` directly in any modern browser. No installation, build, extern
 Publish the repository from Settings → Pages → Deploy from a branch → main → / (root).
 
 Files: `index.html`, `style.css`, `script.js`, and `.nojekyll`.
+
+
+## Audit verification
+
+Run `node --test tests/*.test.js` for simulated-canvas behavior checks. See [AUDIT.md](AUDIT.md) for changes, test evidence and remaining visual checks.
